@@ -169,6 +169,57 @@ constructFoo =
 """
                         ]
             )
+        , test "nested record alias constructor"
+            (\() ->
+                """module A exposing (..)
+
+type alias Foo = 
+    { foo : String
+    , bar : Bool
+    , baz : Float
+    }
+
+constructFoo =
+    Foo (Foo "hello" True 0.2 |> .foo)
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = errorInfo.message
+                            , details = errorInfo.details
+                            , under = "Foo \"hello\" True 0.2"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+
+type alias Foo = 
+    { foo : String
+    , bar : Bool
+    , baz : Float
+    }
+
+constructFoo =
+    Foo ({ foo = "hello", bar = True, baz = 0.2 } |> .foo)
+"""
+                        , Review.Test.error
+                            { message = errorInfo.message
+                            , details = errorInfo.details
+                            , under = "Foo (Foo \"hello\" True 0.2 |> .foo)"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+
+type alias Foo = 
+    { foo : String
+    , bar : Bool
+    , baz : Float
+    }
+
+constructFoo =
+    (\\bar baz -> { foo = Foo "hello" True 0.2 |> .foo, bar = bar, baz = baz })
+"""
+                        ]
+            )
         , test "record alias constructor from different dependency"
             (\() ->
                 let
@@ -177,15 +228,11 @@ constructFoo =
                         let
                             projectMetadata =
                                 applicationElmJson
-                                    { directDependencies =
-                                        [ ( "lue-bird/elm-typesafe-array", ( 18, 0, 0 ) )
-                                        ]
-                                    }
                         in
                         Project.new
                             |> Project.addDependency
                                 (Dependency.create "lue-bird/elm-foo"
-                                    projectMetadata.project
+                                    projectMetadata
                                     [ { name = "Foo"
                                       , comment = ""
                                       , unions = []
@@ -499,13 +546,13 @@ createElmJson project =
     }
 
 
-applicationElmJson :
-    { directDependencies : List ( String, ( Int, Int, Int ) ) }
-    -> { path : String, raw : String, project : ProjectMetadata.Project }
-applicationElmJson { directDependencies } =
+applicationElmJson : ProjectMetadata.Project
+applicationElmJson =
     let
         versionTupleToString ( mj, mn, pt ) =
-            [ mj, mn, pt ] |> List.map String.fromInt |> String.join "."
+            [ mj, mn, pt ]
+                |> List.map String.fromInt
+                |> String.join "."
 
         versionFromTuple version =
             case
@@ -517,6 +564,9 @@ applicationElmJson { directDependencies } =
 
                 Err err ->
                     Debug.todo ("Invalid version format: " ++ Debug.toString err)
+
+        directDependencies =
+            []
     in
     ProjectMetadata.Application
         { elm = versionFromTuple ( 0, 19, 1 )
@@ -544,4 +594,3 @@ applicationElmJson { directDependencies } =
         , testDepsDirect = []
         , testDepsIndirect = []
         }
-        |> createElmJson
