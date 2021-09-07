@@ -12,7 +12,7 @@
             "stil4m/elm-syntax": "7.2.7",
             "the-sett/elm-pretty-printer": "2.2.3",
             "the-sett/elm-syntax-dsl": "5.2.2",
-            "lue-bird/elm-review-record-alias-constructor": "1.0.0"
+            "lue-bird/elm-review-record-alias-constructor": "1.0.1"
         },
         "indirect": {
             "Chadtech/elm-bool-extra": "2.4.2",
