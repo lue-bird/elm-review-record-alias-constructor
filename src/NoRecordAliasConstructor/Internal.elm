@@ -415,25 +415,14 @@ collectFunctions { bindingsInScope } expressionNode context =
         Expression.FunctionOrValue _ name ->
             case moduleNameAt expressionRange of
                 Just moduleName ->
-                    if
-                        context.functionsAndValues
-                            |> List.any
-                                (\fun ->
-                                    (fun.name == name)
-                                        && (fun.moduleName == moduleName)
-                                )
-                    then
-                        []
-
-                    else
-                        [ { name = name
-                          , moduleName = moduleName
-                          , arguments = []
-                          , range = expressionRange
-                          , bindingsInScope =
-                                bindingsInScope
-                          }
-                        ]
+                    [ { name = name
+                      , moduleName = moduleName
+                      , arguments = []
+                      , range = expressionRange
+                      , bindingsInScope =
+                            bindingsInScope
+                      }
+                    ]
 
                 Nothing ->
                     []
@@ -513,7 +502,9 @@ checkEverything context =
                     exposingAllImportedFunctions =
                         allImportedModules
                             |> List.filterMap
-                                (\import_ -> Dict.get import_ context.modulesExposingAll)
+                                (\import_ ->
+                                    Dict.get import_ context.modulesExposingAll
+                                )
                             |> List.concatMap .functions
                 in
                 context.aliases
