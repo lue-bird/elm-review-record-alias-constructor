@@ -57,6 +57,13 @@ config =
     , Simplify.rule
     , OnlyAllSingleUseTypeVarsEndWith_.rule
     , NoSinglePatternCase.rule
+        (NoSinglePatternCase.fixInArgument
+            |> NoSinglePatternCase.ifAsPatternRequired
+                (NoSinglePatternCase.fixInLetInstead
+                    |> NoSinglePatternCase.andIfNoLetExists
+                        NoSinglePatternCase.createNewLet
+                )
+        )
     , NoLeftPizza.rule NoLeftPizza.Any
     , NoBooleanCase.rule
     , OnlyAllSingleUseTypeVarsEndWith_.rule
