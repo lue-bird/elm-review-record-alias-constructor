@@ -1,4 +1,4 @@
-module CodeGen.Test exposing (..)
+module CodeGen.Test exposing (tests)
 
 import Elm.CodeGen as Gen
 import Elm.Pretty as GenPretty
