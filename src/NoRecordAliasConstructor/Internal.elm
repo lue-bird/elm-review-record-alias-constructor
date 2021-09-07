@@ -564,6 +564,7 @@ checkEverything context =
                                                             Gen.lambda
                                                                 (curriedFields |> List.map Gen.varPattern)
                                                                 record
+                                                                |> Gen.parens
                                                      )
                                                         |> GenPretty.prettyExpression
                                                         -- up to debate
