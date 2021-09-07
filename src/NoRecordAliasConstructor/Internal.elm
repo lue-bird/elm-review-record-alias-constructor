@@ -352,6 +352,7 @@ collectFunctions { bindingsInScope } expressionNode context =
         (Node expressionRange expression) =
             expressionNode
 
+        moduleNameAt : Range -> Maybe ModuleName
         moduleNameAt range =
             ModuleNameLookupTable.moduleNameAt
                 context.moduleNameLookupTable
@@ -400,14 +401,15 @@ collectFunctions { bindingsInScope } expressionNode context =
         Expression.Application ((Node nameRange (Expression.FunctionOrValue _ name)) :: arguments) ->
             case moduleNameAt nameRange of
                 Just moduleName ->
-                    { name = name
-                    , moduleName = moduleName
-                    , arguments = arguments |> List.map Node.value
-                    , bindingsInScope =
-                        bindingsInScope
-                    , range = expressionRange
-                    }
-                        :: go arguments
+                    go arguments
+                        ++ [ { name = name
+                             , moduleName = moduleName
+                             , arguments = arguments |> List.map Node.value
+                             , bindingsInScope =
+                                bindingsInScope
+                             , range = expressionRange
+                             }
+                           ]
 
                 Nothing ->
                     go arguments
@@ -560,7 +562,7 @@ checkEverything context =
                                                         [] ->
                                                             record
                                                                 |> GenPretty.prettyExpression
-                                                                |> pretty 1000
+                                                                |> pretty 120
 
                                                         _ ->
                                                             Gen.lambda
