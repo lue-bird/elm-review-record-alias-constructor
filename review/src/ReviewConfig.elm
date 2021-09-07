@@ -54,7 +54,7 @@ config =
     , NoUnused.Parameters.rule
     , NoUnused.Patterns.rule
     , NoUnused.Variables.rule
-    , Simplify.rule
+    , Simplify.rule Simplify.defaults
     , OnlyAllSingleUseTypeVarsEndWith_.rule
     , NoSinglePatternCase.rule
         (NoSinglePatternCase.fixInArgument
