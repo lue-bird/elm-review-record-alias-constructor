@@ -71,7 +71,7 @@ type alias Foo =
     , baz : Float
     }
 
-init : Foo
+init : Float -> Foo
 init =
     Foo "hello" True
 """
@@ -91,9 +91,45 @@ type alias Foo =
     , baz : Float
     }
 
-init : Foo
+init : Float -> Foo
 init =
-    \\baz -> { foo = "hello", bar = True, baz = baz }
+    (\\baz -> { foo = "hello", bar = True, baz = baz })
+"""
+                        ]
+            )
+        , test "record alias constructor as an argument"
+            (\() ->
+                """module A exposing (..)
+
+type alias Foo = 
+    { foo : String
+    , bar : Bool
+    , baz : Float
+    }
+
+init =
+    identity Foo
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = errorInfo.message
+                            , details = errorInfo.details
+                            , under = "Foo"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 10, column = 14 }, end = { row = 10, column = 17 } }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+
+type alias Foo = 
+    { foo : String
+    , bar : Bool
+    , baz : Float
+    }
+
+init =
+    identity (\\foo bar baz -> { foo = foo, bar = bar, baz = baz })
 """
                         ]
             )
@@ -129,7 +165,7 @@ type alias Foo =
     }
 
 constructFoo =
-    \\foo bar baz -> { foo = foo, bar = bar, baz = baz }
+    (\\foo bar baz -> { foo = foo, bar = bar, baz = baz })
 """
                         ]
             )
@@ -196,7 +232,7 @@ constructFoo =
 import Foo exposing (Foo)
 
 constructFoo =
-    \\foo bar baz -> { foo = foo, bar = bar, baz = baz }
+    (\\foo bar baz -> { foo = foo, bar = bar, baz = baz })
 """
                             ]
                           )
@@ -236,7 +272,7 @@ constructFoo =
 import Foo exposing (Foo)
 
 constructFoo =
-    \\foo bar baz -> { foo = foo, bar = bar, baz = baz }
+    (\\foo bar baz -> { foo = foo, bar = bar, baz = baz })
 """
                             ]
                           )

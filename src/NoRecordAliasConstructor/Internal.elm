@@ -556,19 +556,19 @@ checkEverything context =
                                                             )
                                                   in
                                                   Fix.replaceRangeBy use.range
-                                                    ((case curriedFields of
+                                                    (case curriedFields of
                                                         [] ->
                                                             record
+                                                                |> GenPretty.prettyExpression
+                                                                |> pretty 1000
 
                                                         _ ->
                                                             Gen.lambda
                                                                 (curriedFields |> List.map Gen.varPattern)
                                                                 record
-                                                                |> Gen.parens
-                                                     )
-                                                        |> GenPretty.prettyExpression
-                                                        -- up to debate
-                                                        |> pretty 140
+                                                                |> GenPretty.prettyExpression
+                                                                |> pretty 1000
+                                                                |> putParensAround
                                                     )
                                                 ]
                                             ]
@@ -585,3 +585,10 @@ errorInfo =
         , "This makes your code easier to understand and read."
         ]
     }
+
+
+{-| `Gen.parens` is ignored when printing, so the parens are put around manually.
+-}
+putParensAround : String -> String
+putParensAround string =
+    "(" ++ string ++ ")"
