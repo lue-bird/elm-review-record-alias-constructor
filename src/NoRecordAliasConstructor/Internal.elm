@@ -19,8 +19,8 @@ import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern exposing (Pattern)
 import Elm.Syntax.Range exposing (Range)
 import Elm.Syntax.TypeAlias exposing (TypeAlias)
-import Elm.Syntax.TypeAnnotation as Ann
-import Elm.Type as TypeInProject
+import Elm.Syntax.TypeAnnotation as Annotation
+import Elm.Type as TypeMetadata
 import Pretty exposing (pretty)
 import Review.Fix as Fix
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
@@ -70,7 +70,7 @@ rule =
                                         |> List.filterMap
                                             (\alias ->
                                                 case alias.tipe of
-                                                    TypeInProject.Record fields Nothing ->
+                                                    TypeMetadata.Record fields Nothing ->
                                                         { moduleName = module_.name |> moduleNameParts
                                                         , name = alias.name
                                                         , recordFields =
@@ -129,8 +129,8 @@ rule =
                         ( []
                         , let
                             contextWithThisDeclaration =
-                                case ( context.exposing_, declaration ) of
-                                    ( ExposingAll, FunctionDeclaration fun ) ->
+                                case declaration of
+                                    FunctionDeclaration fun ->
                                         let
                                             (Node _ name) =
                                                 fun.declaration |> Node.value |> .name
@@ -315,7 +315,7 @@ visitDeclarationForRecordAlias alias context =
             alias.name |> Node.value
     in
     case alias.typeAnnotation |> Node.value of
-        Ann.Record fields ->
+        Annotation.Record fields ->
             let
                 recordAlias =
                     { name = name
