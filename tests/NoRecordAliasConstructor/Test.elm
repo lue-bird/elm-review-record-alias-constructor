@@ -5,7 +5,6 @@ import Elm.Project as ProjectMetadata
 import Elm.Type as TypeMetadata
 import Elm.Version as VersionMetadata
 import Json.Decode
-import Json.Encode
 import NoRecordAliasConstructor exposing (rule)
 import NoRecordAliasConstructor.Internal exposing (errorInfo)
 import Review.Project as Project exposing (Project)
@@ -532,18 +531,6 @@ three =
                     |> Review.Test.expectNoErrors
             )
         ]
-
-
-createElmJson :
-    ProjectMetadata.Project
-    -> { path : String, raw : String, project : ProjectMetadata.Project }
-createElmJson project =
-    { path = "elm.json"
-    , raw =
-        ProjectMetadata.encode project
-            |> Json.Encode.encode 3
-    , project = project
-    }
 
 
 applicationElmJson : ProjectMetadata.Project
