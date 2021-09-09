@@ -69,7 +69,7 @@ decodeUser =
         (field "name" string)
         (field "status" string)
 ```
-Did you spot the mistake?
+Did you spot the mistake? [↑ a similar example](https://sporto.github.io/elm-patterns/advanced/pipeline-builder.html#caveat)
 
 To avoid these kinds of bugs, don't use type alias constructors:
 ```elm
