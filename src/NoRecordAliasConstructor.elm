@@ -36,7 +36,7 @@ fixed
         (field "name" string)
         (field "age" int)
 
-See the readme for why this is useful.
+See the [readme](https://package.elm-lang.org/packages/lue-bird/elm-review-record-alias-constructor/latest/) for why this is useful.
 
 
 ## Configuration
