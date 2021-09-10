@@ -32,6 +32,8 @@ map2 (\name age -> { name = name, age = age })
     (field "age" int)
 ```
 
+[Skip to "try it out"](#try-it-out)
+
 ## why
 
 Fields in a record don't have a "natural order".
@@ -80,16 +82,66 @@ decodeUser =
         (field "status" string)
 ```
 
+[Skip to "try it out"](#try-it-out)
 
-## usage
+For record `Codec`s (from [MartinSStewart's `elm-serialize`](https://package.elm-lang.org/packages/MartinSStewart/elm-serialize/latest/) in this example) where we don't need to encode every field value:
+```elm
+serializeProject : Codec String Project
+serializeProject =
+    record Project
+        |> field .name string
+        |> field .scale float
+        |> field .selected
+            (succeed NothingSelected)
+        |> finishRecord
+```
+`succeed` is a weird concept for codecs because some dummy value must be encoded which will never be read.
 
-### trying it out
+It does not exist in elm-serialize, but it does exist in [miniBill's `elm-codec`](https://package.elm-lang.org/packages/miniBill/elm-codec/latest) (, [prozacchiwawa's `elm-json-codec`](https://package.elm-lang.org/packages/prozacchiwawa/elm-json-codec/latest), ...):
+> Create a Codec that produces null as JSON and always decodes as the same value.
+
+Do you really want this behavior? If not, you'll need
+```elm
+serializeProject : Codec String Project
+serializeProject =
+    record
+        (\name scale ->
+            { name = name
+            , scale = scale
+            , selected = NothingSelected
+            }
+        )
+        |> field .name string
+        |> field .scale float
+        |> finishRecord
+```
+So why not consistently use this record constructing method?
+
+This will also be used often for versioning
+```elm
+enum ProjectVersion0 [ ... ]
+    |> andThen
+        (\version ->
+            case version of
+                ProjectVersion0 ->
+                    record
+                        (\name -> { name = name, scale = 1 })
+                        |> field .name string
+                        |> finishRecord
+                    
+                ...
+        )
+```
+Again: Why not consistently use one record constructing method?
+
+
+## try it out
 
 ```noformattingples
 elm-review --template lue-bird/elm-record-alias-constructor/example
 ```
 
-### using it
+## use it
 
 After adding [elm-review](https://package.elm-lang.org/packages/jfmengels/elm-review/latest/) to your project, import this rule from
 your `ReviewConfig.elm` file and add it to the config. E.g.:
@@ -108,7 +160,7 @@ config =
 ## comparison to no-typealias-constructor-call
 
 [lxierita/no-typealias-constructor-call](lxierita/no-typealias-constructor-call)...
-- ... doesn't report alias constructors that aren't called directly
+- ... only reports record alias constructors that are called directly
   ```elm
   (User <| "A") <| 42
   (identity User) "Bill" 42
@@ -116,7 +168,7 @@ config =
   ```
   aren't reported for example
 - ... doesn't provide automatic fixes → refactoring is inconvenient
-- ... only looks for type aliases in the same module. This package finds _every record alias_, even in the dependencies
+- ... only looks for type aliases in the same module. This package finds _every used record alias_
 
 ## too verbose?
 
