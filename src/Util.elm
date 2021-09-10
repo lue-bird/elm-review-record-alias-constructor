@@ -1,4 +1,4 @@
-module Util exposing (ExposingInfo(..), ModuleInfo, allBindingsInPattern, functionsExposedFromImport, moduleInfo, subexpressions)
+module Util exposing (ExposingInfo(..), ModuleInfo, allBindingsInPattern, functionsExposedFromImport, moduleInfo, reindent, subexpressions)
 
 {-| Helpers
 -}
@@ -241,3 +241,27 @@ groupExposingList exposingList =
                         groups
             )
             { functions = [] }
+
+
+{-| Re-indent a section of generated code to ensure that it doesn't cause issues
+when used as a fix.
+-}
+reindent : Int -> String -> String
+reindent amount =
+    let
+        indent : String
+        indent =
+            String.repeat (amount - 1) " "
+    in
+    String.lines
+        >> List.map
+            (\l ->
+                -- Don't indent empty lines
+                if String.isEmpty l then
+                    l
+
+                else
+                    indent ++ l
+            )
+        >> String.join "\n"
+        >> String.trimLeft

@@ -26,7 +26,7 @@ import Review.Fix as Fix
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Project.Dependency as Dependency
 import Review.Rule as Rule exposing (ModuleKey, Rule)
-import Util exposing (ExposingInfo(..), allBindingsInPattern, functionsExposedFromImport, moduleInfo, subexpressions)
+import Util exposing (ExposingInfo(..), allBindingsInPattern, functionsExposedFromImport, moduleInfo, reindent, subexpressions)
 
 
 rule : Rule
@@ -562,14 +562,16 @@ checkEverything context =
                                                         [] ->
                                                             record
                                                                 |> GenPretty.prettyExpression
-                                                                |> pretty 120
+                                                                |> pretty 100
+                                                                |> reindent use.range.start.column
 
                                                         _ ->
                                                             Gen.lambda
                                                                 (curriedFields |> List.map Gen.varPattern)
                                                                 record
                                                                 |> GenPretty.prettyExpression
-                                                                |> pretty 1000
+                                                                |> pretty 100
+                                                                |> reindent use.range.start.column
                                                                 |> putParensAround
                                                     )
                                                 ]
