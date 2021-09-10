@@ -3,7 +3,7 @@
     "name": "lue-bird/elm-review-record-alias-constructor",
     "summary": "elm-review rule: forbid all record type alias constructors",
     "license": "MIT",
-    "version": "1.0.3",
+    "version": "1.0.4",
     "exposed-modules": [
         "NoRecordAliasConstructor"
     ],
