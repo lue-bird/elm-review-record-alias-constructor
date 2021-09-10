@@ -60,6 +60,103 @@ init =
 """
                         ]
             )
+        , test "long record constructor lambda"
+            (\() ->
+                """module A exposing (..)
+
+type alias Foo = 
+    { foofooTheTrain : String
+    , barbarTheMan : Bool
+    , bazbazTheBreakfast : Float
+    }
+
+init : Foo
+init =
+    let
+        fooConstructor =
+            identity Foo
+    in
+    fooConstructor
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = errorInfo.message
+                            , details = errorInfo.details
+                            , under = "Foo"
+                            }
+                            |> Review.Test.atExactly
+                                { start = { row = 13, column = 22 }, end = { row = 13, column = 25 } }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+
+type alias Foo = 
+    { foofooTheTrain : String
+    , barbarTheMan : Bool
+    , bazbazTheBreakfast : Float
+    }
+
+init : Foo
+init =
+    let
+        fooConstructor =
+            identity (\\foofooTheTrain barbarTheMan bazbazTheBreakfast ->
+                         { foofooTheTrain = foofooTheTrain
+                         , barbarTheMan = barbarTheMan
+                         , bazbazTheBreakfast = bazbazTheBreakfast
+                         })
+    in
+    fooConstructor
+"""
+                        ]
+            )
+        , test "long record constructor"
+            (\() ->
+                """module A exposing (..)
+
+type alias Foo = 
+    { foofooTheTrain : String
+    , barbarTheMan : Bool
+    , bazbazTheBreakfast : Float
+    }
+
+init : Foo
+init =
+    let
+        fooConstructor =
+            identity (Foo "hello, allow me to introduce myself" True 0.2)
+    in
+    fooConstructor
+"""
+                    |> Review.Test.run rule
+                    |> Review.Test.expectErrors
+                        [ Review.Test.error
+                            { message = errorInfo.message
+                            , details = errorInfo.details
+                            , under = "Foo \"hello, allow me to introduce myself\" True 0.2"
+                            }
+                            |> Review.Test.whenFixed
+                                """module A exposing (..)
+
+type alias Foo = 
+    { foofooTheTrain : String
+    , barbarTheMan : Bool
+    , bazbazTheBreakfast : Float
+    }
+
+init : Foo
+init =
+    let
+        fooConstructor =
+            identity ({ foofooTheTrain = "hello, allow me to introduce myself"
+                      , barbarTheMan = True
+                      , bazbazTheBreakfast = 0.2
+                      })
+    in
+    fooConstructor
+"""
+                        ]
+            )
         , test "record alias constructor curried"
             (\() ->
                 """module A exposing (..)
