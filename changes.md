@@ -2,9 +2,10 @@
 
 #### 1.0.4
 
-- Added section about why using a record alias constructor in a codec is bad.
-- Added link to another example for a problem with record alias constructors.
-- Fully support multiline code generation.
+- Added section about why using a record alias constructor in a codec is bad
+- Added link to another example for a problem with record alias constructors
+- Fully support multiline code generation
+- Noted in the readme that Dhall uses the `{ field }` second syntax for record constructors
 
 #### 1.0.3
 
