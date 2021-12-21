@@ -188,13 +188,14 @@ decodeUser =
         (field "name" string)
         (field "status" string)
 ```
-like purescript does it or
+like purescript does it or even better:
 ```elm
 decodeUser =
     map2 { name, status }
         (field "name" string)
         (field "status" string)
 ```
+like Dhall does it
 (or something crazy using field addition / record unions)
 
 [lxierita/no-typealias-constructor-call]: https://package.elm-lang.org/packages/lxierita/no-typealias-constructor-call/latest/
