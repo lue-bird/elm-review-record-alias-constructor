@@ -82,7 +82,46 @@ decodeUser =
         (field "status" string)
 ```
 
+Problems don't end there.
+
+### implicit magic
+
+>"There are worse things than being explicit" – Evan
+
+Most record type aliases are not intended to work with positional arguments!
+`Model` as the perfect example.
+
+### there are better alternatives
+
+It's so easy to create an explicit constructor
+
+```elm
+xy : Float -> Float -> { x : Float, y : Float }
+```
+
+As argued, unnamed arguments shouldn't be the default.
+Additionally, your record will be more descriptive and type-safe using `type`
+
+```elm
+type Cat
+    = Cat { mood : Mood, birthTime : Time.Posix }
+```
+
+to make wrapping, unwrapping and combining easier, you can try [typed-value](https://dark.elm.dmy.fr/packages/lue-bird/elm-typed-value/latest/).
+
+### only generated for specific scenarios
+
+```elm
+type alias NoConstructor =
+    Extensible {}
+
+type alias NoConstructor =
+    RecordTypeAlias
+```
+
 [Skip to "try it out"](#try-it-out)
+
+### `succeed`/`constant` are misused
 
 For record `Codec`s (from [MartinSStewart's `elm-serialize`](https://package.elm-lang.org/packages/MartinSStewart/elm-serialize/latest/) in this example) where we don't need to encode every field value:
 ```elm
@@ -180,22 +219,23 @@ decodeUser =
 ```
 is rather verbose.
 
-Ultimately, I think elm could introduce some simpler syntax, for example
+There are languages that introduce extra sugar
 
 ```elm
+-- purescript
 decodeUser =
     map2 (\name status -> { name, status })
         (field "name" string)
         (field "status" string)
-```
-like purescript does it or even better:
-```elm
+
+-- Dhall
 decodeUser =
     map2 { name, status }
         (field "name" string)
         (field "status" string)
 ```
-like Dhall does it
-(or something crazy using field addition / record unions)
+Which all have problems (see the [`succeed`/`constant` are misused section](#succeed/constant-are-misused) for example)!
+
+Maybe something crazy using record unions would be neat but... elm will probably be kept simple.
 
 [lxierita/no-typealias-constructor-call]: https://package.elm-lang.org/packages/lxierita/no-typealias-constructor-call/latest/
