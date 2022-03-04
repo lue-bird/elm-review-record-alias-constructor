@@ -25,50 +25,6 @@ import Review.Rule as Rule exposing (Rule)
 import Util exposing (indentFurther)
 
 
-{-| 🔧`NoRecordAliasWithConstructor` forbids directly aliasing a record type.
-As a consequence, its constructor function becomes unavailable.
-
-Read more about the why in [`no-record-type-alias-constructor-function`](https://dark.elm.dmy.fr/packages/lue-bird/elm-no-record-type-alias-constructor-function/latest/).
-
-Use [`RecordWithoutConstructorFunction`](https://dark.elm.dmy.fr/packages/lue-bird/elm-no-record-type-alias-constructor-function/latest/)
-when directly aliasing a record type to avoid its constructor function becoming unavailable.
-
-
-## example
-
-    type alias User =
-        { name : String, age : Int }
-
-will be marked as error and automatically fixed:
-
-    import RecordWithoutConstructorFunction exposing (RecordWithoutConstructorFunction)
-
-    type alias User =
-        RecordWithoutConstructorFunction
-            { name : String, age : Int }
-
-
-## configuration
-
-    import NoRecordAliasWithConstructor
-
-    config : List Rule
-    config =
-        [ NoRecordAliasWithConstructor.rule
-        ]
-
-[Defaults](#configDefault) can be altered by using [`ruleWith`](#ruleWith) [`Config`](#Config).
-
--}
-rule : Rule
-rule =
-    ruleWith configDefault
-
-
-
---
-
-
 {-| Configuration where you can specify
 
   - where/what your `RecordWithoutConstructorFunction` is: [`importRecordWithoutConstructorFunctionTypeAlias`](#importRecordWithoutConstructorFunctionTypeAlias)
@@ -157,6 +113,87 @@ alterConfig alter =
 --
 
 
+{-| 🔧`NoRecordAliasWithConstructor` forbids directly aliasing a record type.
+As a consequence, its constructor function becomes unavailable.
+
+Read more about the why in [`no-record-type-alias-constructor-function`](https://dark.elm.dmy.fr/packages/lue-bird/elm-no-record-type-alias-constructor-function/latest/).
+
+Use [`RecordWithoutConstructorFunction`](https://dark.elm.dmy.fr/packages/lue-bird/elm-no-record-type-alias-constructor-function/latest/)
+when directly aliasing a record type to avoid its constructor function becoming unavailable.
+
+
+## example
+
+    type alias User =
+        { name : String, age : Int }
+
+will be marked as error and automatically fixed:
+
+    import RecordWithoutConstructorFunction exposing (RecordWithoutConstructorFunction)
+
+    type alias User =
+        RecordWithoutConstructorFunction
+            { name : String, age : Int }
+
+
+## configuration
+
+    import NoRecordAliasWithConstructor
+
+    config : List Rule
+    config =
+        [ NoRecordAliasWithConstructor.rule
+        ]
+
+[Defaults](#configDefault) can be altered by using [`ruleWith`](#ruleWith) [`Config`](#Config).
+
+-}
+rule : Rule
+rule =
+    ruleWith configDefault
+
+
+{-| 🔧`NoRecordAliasWithConstructor` forbids directly aliasing a record type.
+As a consequence, its constructor function becomes unavailable.
+
+Read more about the why in [`no-record-type-alias-constructor-function`](https://dark.elm.dmy.fr/packages/lue-bird/elm-no-record-type-alias-constructor-function/latest/).
+
+You can use [`RecordWithoutConstructorFunction`](https://dark.elm.dmy.fr/packages/lue-bird/elm-no-record-type-alias-constructor-function/latest/)
+when directly aliasing a record type to avoid its constructor function becoming unavailable.
+
+
+## example
+
+    type alias User =
+        { name : String, age : Int }
+
+will be marked as error and automatically fixed:
+
+    import Util exposing (WithoutConstructorFunction)
+
+    type alias User =
+        WithoutConstructorFunction
+            { name : String, age : Int }
+
+
+## configuration
+
+    import NoRecordAliasWithConstructor exposing (importRecordWithoutConstructorFunctionTypeAlias)
+
+    config : List Rule
+    config =
+        [ NoRecordAliasWithConstructor.ruleWith
+            (NoRecordAliasWithConstructor.configDefault
+                |> importRecordWithoutConstructorFunctionTypeAlias
+                    { moduleName = "Util"
+                    , typeAliasName = "WithoutConstructorFunction"
+                    }
+            )
+        ]
+
+[`rule`](#rule) simply uses the [default](#configDefault) [`Config`](#Config).
+
+-}
 ruleWith : Config -> Rule
 ruleWith config =
     let
