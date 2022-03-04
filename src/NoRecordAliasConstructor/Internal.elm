@@ -19,7 +19,7 @@ import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern exposing (Pattern)
 import Elm.Syntax.Range exposing (Range)
 import Elm.Syntax.TypeAlias exposing (TypeAlias)
-import Elm.Syntax.TypeAnnotation as Annotation
+import Elm.Syntax.TypeAnnotation as Type
 import Elm.Type as TypeMetadata
 import Pretty exposing (pretty)
 import Review.Fix as Fix
@@ -315,7 +315,7 @@ visitDeclarationForRecordAlias alias context =
             alias.name |> Node.value
     in
     case alias.typeAnnotation |> Node.value of
-        Annotation.Record fields ->
+        Type.Record fields ->
             let
                 recordAlias =
                     { name = name
