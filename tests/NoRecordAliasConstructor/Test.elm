@@ -9,7 +9,7 @@ import NoRecordAliasConstructor exposing (rule)
 import NoRecordAliasConstructor.Internal exposing (errorInfo)
 import Review.Project as Project exposing (Project)
 import Review.Project.Dependency as Dependency
-import Review.Test
+import Review.Test as Test
 import Test exposing (Test, describe, test)
 
 
@@ -38,14 +38,14 @@ init : Foo
 init =
     Foo "hello" True 0.2
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
+                    |> Test.run rule
+                    |> Test.expectErrors
+                        [ Test.error
                             { message = errorInfo.message
                             , details = errorInfo.details
                             , under = "Foo \"hello\" True 0.2"
                             }
-                            |> Review.Test.whenFixed
+                            |> Test.whenFixed
                                 """module A exposing (..)
 
 type alias Foo = 
@@ -78,16 +78,16 @@ init =
     in
     fooConstructor
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
+                    |> Test.run rule
+                    |> Test.expectErrors
+                        [ Test.error
                             { message = errorInfo.message
                             , details = errorInfo.details
                             , under = "Foo"
                             }
-                            |> Review.Test.atExactly
+                            |> Test.atExactly
                                 { start = { row = 13, column = 22 }, end = { row = 13, column = 25 } }
-                            |> Review.Test.whenFixed
+                            |> Test.whenFixed
                                 """module A exposing (..)
 
 type alias Foo = 
@@ -128,14 +128,14 @@ init =
     in
     fooConstructor
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
+                    |> Test.run rule
+                    |> Test.expectErrors
+                        [ Test.error
                             { message = errorInfo.message
                             , details = errorInfo.details
                             , under = "Foo \"hello, allow me to introduce myself\" True 0.2"
                             }
-                            |> Review.Test.whenFixed
+                            |> Test.whenFixed
                                 """module A exposing (..)
 
 type alias Foo = 
@@ -171,14 +171,14 @@ init : Float -> Foo
 init =
     Foo "hello" True
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
+                    |> Test.run rule
+                    |> Test.expectErrors
+                        [ Test.error
                             { message = errorInfo.message
                             , details = errorInfo.details
                             , under = "Foo \"hello\" True"
                             }
-                            |> Review.Test.whenFixed
+                            |> Test.whenFixed
                                 """module A exposing (..)
 
 type alias Foo = 
@@ -206,16 +206,16 @@ type alias Foo =
 init =
     identity Foo
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
+                    |> Test.run rule
+                    |> Test.expectErrors
+                        [ Test.error
                             { message = errorInfo.message
                             , details = errorInfo.details
                             , under = "Foo"
                             }
-                            |> Review.Test.atExactly
+                            |> Test.atExactly
                                 { start = { row = 10, column = 14 }, end = { row = 10, column = 17 } }
-                            |> Review.Test.whenFixed
+                            |> Test.whenFixed
                                 """module A exposing (..)
 
 type alias Foo = 
@@ -242,16 +242,16 @@ type alias Foo =
 constructFoo =
     Foo
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
+                    |> Test.run rule
+                    |> Test.expectErrors
+                        [ Test.error
                             { message = errorInfo.message
                             , details = errorInfo.details
                             , under = "Foo"
                             }
-                            |> Review.Test.atExactly
+                            |> Test.atExactly
                                 { start = { row = 10, column = 5 }, end = { row = 10, column = 8 } }
-                            |> Review.Test.whenFixed
+                            |> Test.whenFixed
                                 """module A exposing (..)
 
 type alias Foo = 
@@ -278,14 +278,14 @@ type alias Foo =
 constructFoo =
     Foo (Foo "hello" True 0.2 |> .foo)
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
+                    |> Test.run rule
+                    |> Test.expectErrors
+                        [ Test.error
                             { message = errorInfo.message
                             , details = errorInfo.details
                             , under = "Foo \"hello\" True 0.2"
                             }
-                            |> Review.Test.whenFixed
+                            |> Test.whenFixed
                                 """module A exposing (..)
 
 type alias Foo = 
@@ -297,12 +297,12 @@ type alias Foo =
 constructFoo =
     Foo ({ foo = "hello", bar = True, baz = 0.2 } |> .foo)
 """
-                        , Review.Test.error
+                        , Test.error
                             { message = errorInfo.message
                             , details = errorInfo.details
                             , under = "Foo (Foo \"hello\" True 0.2 |> .foo)"
                             }
-                            |> Review.Test.whenFixed
+                            |> Test.whenFixed
                                 """module A exposing (..)
 
 type alias Foo = 
@@ -359,17 +359,17 @@ constructFoo =
     Foo
 """
                 ]
-                    |> Review.Test.runOnModulesWithProjectData project rule
-                    |> Review.Test.expectErrorsForModules
+                    |> Test.runOnModulesWithProjectData project rule
+                    |> Test.expectErrorsForModules
                         [ ( "A"
-                          , [ Review.Test.error
+                          , [ Test.error
                                 { message = errorInfo.message
                                 , details = errorInfo.details
                                 , under = "Foo"
                                 }
-                                |> Review.Test.atExactly
+                                |> Test.atExactly
                                     { start = { row = 6, column = 5 }, end = { row = 6, column = 8 } }
-                                |> Review.Test.whenFixed
+                                |> Test.whenFixed
                                     """module A exposing (..)
 
 import Foo exposing (Foo)
@@ -399,17 +399,17 @@ constructFoo =
     Foo
 """
                 ]
-                    |> Review.Test.runOnModules rule
-                    |> Review.Test.expectErrorsForModules
+                    |> Test.runOnModules rule
+                    |> Test.expectErrorsForModules
                         [ ( "A"
-                          , [ Review.Test.error
+                          , [ Test.error
                                 { message = errorInfo.message
                                 , details = errorInfo.details
                                 , under = "Foo"
                                 }
-                                |> Review.Test.atExactly
+                                |> Test.atExactly
                                     { start = { row = 6, column = 5 }, end = { row = 6, column = 8 } }
-                                |> Review.Test.whenFixed
+                                |> Test.whenFixed
                                     """module A exposing (..)
 
 import Foo exposing (Foo)
@@ -445,14 +445,14 @@ constructFoo =
     in
     Foo "hello"
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
+                    |> Test.run rule
+                    |> Test.expectErrors
+                        [ Test.error
                             { message = errorInfo.message
                             , details = errorInfo.details
                             , under = "Foo \"hello\""
                             }
-                            |> Review.Test.atExactly
+                            |> Test.atExactly
                                 { start = { row = 14, column = 5 }, end = { row = 14, column = 16 } }
                         ]
             )
@@ -474,14 +474,14 @@ constructFoo =
         Nothing ->
             defaultFoo
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
+                    |> Test.run rule
+                    |> Test.expectErrors
+                        [ Test.error
                             { message = errorInfo.message
                             , details = errorInfo.details
                             , under = "Foo \"hello\""
                             }
-                            |> Review.Test.atExactly
+                            |> Test.atExactly
                                 { start = { row = 12, column = 13 }, end = { row = 12, column = 24 } }
                         ]
             )
@@ -501,14 +501,14 @@ bar =
 constructFoo =
     Foo "hello"
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
+                    |> Test.run rule
+                    |> Test.expectErrors
+                        [ Test.error
                             { message = errorInfo.message
                             , details = errorInfo.details
                             , under = "Foo \"hello\""
                             }
-                            |> Review.Test.atExactly
+                            |> Test.atExactly
                                 { start = { row = 13, column = 5 }, end = { row = 13, column = 16 } }
                         ]
             )
@@ -527,14 +527,14 @@ type alias Foo =
 constructFoo =
     Foo "hello"
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectErrors
-                        [ Review.Test.error
+                    |> Test.run rule
+                    |> Test.expectErrors
+                        [ Test.error
                             { message = errorInfo.message
                             , details = errorInfo.details
                             , under = "Foo \"hello\""
                             }
-                            |> Review.Test.atExactly
+                            |> Test.atExactly
                                 { start = { row = 12, column = 5 }, end = { row = 12, column = 16 } }
                         ]
             )
@@ -559,15 +559,15 @@ constructFoo =
     Foo "hello"
 """
                 ]
-                    |> Review.Test.runOnModules rule
-                    |> Review.Test.expectErrorsForModules
+                    |> Test.runOnModules rule
+                    |> Test.expectErrorsForModules
                         [ ( "A"
-                          , [ Review.Test.error
+                          , [ Test.error
                                 { message = errorInfo.message
                                 , details = errorInfo.details
                                 , under = "Foo \"hello\""
                                 }
-                                |> Review.Test.atExactly
+                                |> Test.atExactly
                                     { start = { row = 12, column = 5 }, end = { row = 12, column = 16 } }
                             ]
                           )
@@ -596,8 +596,8 @@ init =
     , baz = 0.2    
     }
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectNoErrors
+                    |> Test.run rule
+                    |> Test.expectNoErrors
             )
         , test "variant constructors"
             (\() ->
@@ -607,8 +607,8 @@ greater : Order
 greater = 
     GT
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectNoErrors
+                    |> Test.run rule
+                    |> Test.expectNoErrors
             )
         , test "normal functions and values"
             (\() ->
@@ -624,8 +624,8 @@ three : Int
 three =
     add one 2
 """
-                    |> Review.Test.run rule
-                    |> Review.Test.expectNoErrors
+                    |> Test.run rule
+                    |> Test.expectNoErrors
             )
         ]
 
