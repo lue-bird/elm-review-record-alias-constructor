@@ -10,10 +10,12 @@ import NoRecordAliasConstructor.Internal as Internal
 import Review.Rule exposing (Rule)
 
 
-{-| 🔧`NoRecordAliasConstructor` forbids using the automatically generated record type alias constructor.
+{-| 🔧`NoRecordAliasConstructor` forbids using a record type alias constructor function.
+
+Read more about the why in [`no-record-type-alias-constructor-function`](https://dark.elm.dmy.fr/packages/lue-bird/elm-no-record-type-alias-constructor-function/latest/).
 
 
-## Examples
+## examples
 
     type alias User =
         { name : String, age : Int }
@@ -39,7 +41,9 @@ fixed
 See the [readme](https://package.elm-lang.org/packages/lue-bird/elm-review-record-alias-constructor/latest/) for why this is useful.
 
 
-## Configuration
+## configuration
+
+    import NoRecordAliasConstructor
 
     config : List Rule
     config =
