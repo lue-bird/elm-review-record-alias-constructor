@@ -1,20 +1,21 @@
 {
     "type": "package",
     "name": "lue-bird/elm-review-record-alias-constructor",
-    "summary": "elm-review rule: forbid all record type alias constructors",
+    "summary": "elm-review rule: forbid record `type alias` constructors",
     "license": "MIT",
     "version": "1.0.4",
     "exposed-modules": [
-        "NoRecordAliasConstructor"
+        "NoRecordAliasConstructor",
+        "NoRecordAliasWithConstructor"
     ],
     "elm-version": "0.19.0 <= v < 0.20.0",
     "dependencies": {
         "elm/core": "1.0.0 <= v < 2.0.0",
         "elm/project-metadata-utils": "1.0.2 <= v < 2.0.0",
-        "jfmengels/elm-review": "2.0.0 <= v < 3.0.0",
-        "stil4m/elm-syntax": "7.1.1 <= v < 8.0.0",
-        "the-sett/elm-pretty-printer": "2.2.3 <= v < 3.0.0",
-        "the-sett/elm-syntax-dsl": "5.2.2 <= v < 6.0.0"
+        "jfmengels/elm-review": "2.7.0 <= v < 3.0.0",
+        "stil4m/elm-syntax": "7.2.9 <= v < 8.0.0",
+        "the-sett/elm-pretty-printer": "3.0.0 <= v < 4.0.0",
+        "the-sett/elm-syntax-dsl": "6.0.1 <= v < 7.0.0"
     },
     "test-dependencies": {
         "elm/json": "1.1.3 <= v < 2.0.0",
