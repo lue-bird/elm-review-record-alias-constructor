@@ -97,33 +97,4 @@ config =
 
 ```
 
-# fields constructor too verbose?
-
-```elm
-decodeUser =
-    map2 (\name status -> { name = name, status = status })
-        (field "name" string)
-        (field "status" string)
-```
-is rather verbose.
-
-There are languages that introduce extra sugar
-
-```elm
--- purescript
-decodeUser =
-    map2 (\name status -> { name, status })
-        (field "name" string)
-        (field "status" string)
-
--- Dhall
-decodeUser =
-    map2 { name, status }
-        (field "name" string)
-        (field "status" string)
-```
-Which all have problems (see the [`succeed`/`constant` are misused section](#succeed/constant-are-misused) for example)!
-
-Maybe something crazy using record unions would be neat but... elm will probably be kept simple.
-
 [lxierita/no-typealias-constructor-call]: https://package.elm-lang.org/packages/lxierita/no-typealias-constructor-call/latest/
