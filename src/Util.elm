@@ -1,4 +1,4 @@
-module Util exposing (ExposingInfo(..), ModuleInfo, allBindingsInPattern, functionsExposedFromImport, moduleInfo, reindent, subexpressions)
+module Util exposing (ExposingInfo(..), ModuleInfo, allBindingsInPattern, functionsExposedFromImport, indentFurther, moduleInfo, reindent, subexpressions)
 
 {-| Helpers
 -}
@@ -265,3 +265,12 @@ reindent amount =
             )
         >> String.join "\n"
         >> String.trimLeft
+
+
+indentFurther : String -> String
+indentFurther =
+    \code ->
+        code
+            |> String.lines
+            |> List.map (\codeLine -> "    " ++ codeLine)
+            |> String.join "\n"

@@ -12,10 +12,12 @@ when inside the directory containing this file.
 -}
 
 import NoRecordAliasConstructor
+import NoRecordAliasWithConstructor
 import Review.Rule exposing (Rule)
 
 
 config : List Rule
 config =
     [ NoRecordAliasConstructor.rule
+    , NoRecordAliasWithConstructor.rule
     ]
