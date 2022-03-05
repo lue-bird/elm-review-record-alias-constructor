@@ -22,7 +22,7 @@ import Elm.Syntax.TypeAnnotation exposing (TypeAnnotation(..))
 import NoRecordAliasWithConstructor.Internal exposing (errorInfo)
 import Review.Fix as Fix exposing (Fix)
 import Review.Rule as Rule exposing (Rule)
-import Util exposing (indentFurther)
+import Util exposing (indentFurther, indentationLevel, isDocComment, moduleNameToString)
 
 
 {-| Configuration where you can specify
@@ -208,7 +208,7 @@ ruleWith config =
                     , recordWithoutConstructorFunctionImport =
                         RequiredNotImported
                             { importLocation = { column = 1, row = 2 } }
-                    , directlyAliasedRecords = NotFound
+                    , findableDirectlyAliasedRecordRange = NotFound
                     }
                 )
                 |> Rule.withSourceCodeExtractor
@@ -228,9 +228,22 @@ ruleWith config =
                     _ ->
                         NotFound
 
+        importRecordWithoutConstructorFunctionAt : Location -> List Fix
+        importRecordWithoutConstructorFunctionAt importLocation =
+            [ Fix.insertAt importLocation
+                (String.concat
+                    [ "import "
+                    , recordWithoutConstructorFunction.moduleName
+                    , " exposing ("
+                    , recordWithoutConstructorFunction.typeAliasName
+                    , ")\n"
+                    ]
+                )
+            ]
+
         reviewImport :
             { moduleName : String
-            , startLocation : Location
+            , range : Range
             , exposing_ : Maybe Exposing
             }
             -> RequiredImport
@@ -251,13 +264,13 @@ ruleWith config =
                             RequiredImported
 
                         else
-                            RequiredNotImported { importLocation = import_.startLocation }
+                            RequiredNotImported { importLocation = import_.range.start }
 
                     _ ->
-                        RequiredNotImported { importLocation = import_.startLocation }
+                        RequiredNotImported { importLocation = import_.range.start }
 
             else
-                RequiredNotImported { importLocation = import_.startLocation }
+                RequiredNotImported { importLocation = import_.range.start }
 
         fixModule { directlyAliasedRecord, extractSourceCode, recordWithoutConstructorFunctionImport } =
             let
@@ -265,7 +278,7 @@ ruleWith config =
                 fixDirectRecordAlias =
                     [ Fix.replaceRangeBy
                         directlyAliasedRecord
-                        ("    "
+                        (indentationLevel
                             ++ extractSourceCode directlyAliasedRecord
                             |> indentFurther
                         )
@@ -274,29 +287,16 @@ ruleWith config =
                         (recordWithoutConstructorFunction.typeAliasName ++ "\n")
                     ]
 
-                fixImport : { importLocation : Location } -> List Fix
-                fixImport { importLocation } =
-                    [ Fix.insertAt importLocation
-                        ([ "import "
-                         , recordWithoutConstructorFunction.moduleName
-                         , " exposing ("
-                         , recordWithoutConstructorFunction.typeAliasName
-                         , ")\n"
-                         ]
-                            |> String.concat
-                        )
-                    ]
-
-                fixImportIfNecessary =
+                importIfNecessary =
                     case recordWithoutConstructorFunctionImport of
                         RequiredImported ->
                             []
 
-                        RequiredNotImported importLocation ->
-                            fixImport importLocation
+                        RequiredNotImported { importLocation } ->
+                            importRecordWithoutConstructorFunctionAt importLocation
             in
             fixDirectRecordAlias
-                ++ fixImportIfNecessary
+                ++ importIfNecessary
     in
     Rule.newModuleRuleSchemaUsingContextCreator
         "NoRecordAliasWithConstructor"
@@ -308,79 +308,68 @@ ruleWith config =
                     | recordWithoutConstructorFunctionImport =
                         reviewImport
                             { moduleName =
-                                importSyntax.moduleName |> Node.value |> String.join "."
+                                importSyntax.moduleName |> (moduleNameToString << Node.value)
                             , exposing_ =
                                 importSyntax.exposingList |> Maybe.map Node.value
-                            , startLocation =
-                                importRange.start
+                            , range = importRange
                             }
                   }
                 )
             )
         |> Rule.withCommentsVisitor
             (\comments context ->
-                let
+                ( []
+                , let
                     { extractSourceCode } =
                         context
-                in
-                ( []
-                , case
-                    comments
-                        |> List.filter (String.startsWith "{-|" << Node.value)
-                        |> List.filter
-                            (\(Node { end } _) ->
-                                let
-                                    afterComment =
-                                        { row = end.row + 1, column = 1 }
-                                in
-                                -- check if
-                                case
-                                    extractSourceCode
-                                        { start = afterComment
-                                        , end = { afterComment | column = 5 }
-                                        }
-                                of
-                                    -- only keep the module doc comment
-                                    -- checking only the next line assumes `elm-format`ting
-                                    "port" ->
-                                        False
 
-                                    _ ->
-                                        True
-                            )
-                  of
-                    (Node firstCommentRange _) :: _ ->
+                    moduleDocComment : Maybe (Node String)
+                    moduleDocComment =
+                        comments
+                            |> List.filter (isDocComment << Node.value)
+                            |> List.filter
+                                (\(Node commentRange _) ->
+                                    -- only keep the _module doc_ comment
+                                    -- checking only the next line assumes `elm-format`ting
+                                    extractSourceCode
+                                        { start = after commentRange { column = 1 }
+                                        , end = after commentRange { column = 5 }
+                                        }
+                                        /= "port"
+                                )
+                            |> List.head
+                  in
+                  case moduleDocComment of
+                    Just (Node moduleCommentRange _) ->
                         { context
                             | recordWithoutConstructorFunctionImport =
                                 RequiredNotImported
                                     { importLocation =
-                                        { row = firstCommentRange.end.row + 1
-                                        , column = 1
-                                        }
+                                        after moduleCommentRange { column = 1 }
                                     }
                         }
 
-                    [] ->
+                    Nothing ->
                         context
                 )
             )
         |> Rule.withDeclarationEnterVisitor
             (\(Node _ declaration) context ->
                 ( []
-                , case context.directlyAliasedRecords of
-                    Found _ ->
-                        context
-
+                , case context.findableDirectlyAliasedRecordRange of
                     NotFound ->
                         { context
-                            | directlyAliasedRecords =
+                            | findableDirectlyAliasedRecordRange =
                                 reviewDeclaration declaration
                         }
+
+                    Found _ ->
+                        context
                 )
             )
         |> Rule.withFinalModuleEvaluation
-            (\{ extractSourceCode, directlyAliasedRecords, recordWithoutConstructorFunctionImport } ->
-                case directlyAliasedRecords of
+            (\{ extractSourceCode, findableDirectlyAliasedRecordRange, recordWithoutConstructorFunctionImport } ->
+                case findableDirectlyAliasedRecordRange of
                     Found directlyAliasedRecordRange ->
                         [ Rule.errorWithFix
                             errorInfo
@@ -402,7 +391,7 @@ ruleWith config =
 type alias Context =
     { extractSourceCode : Range -> String
     , recordWithoutConstructorFunctionImport : RequiredImport
-    , directlyAliasedRecords : Findable Range
+    , findableDirectlyAliasedRecordRange : Findable Range
     }
 
 
@@ -414,3 +403,8 @@ type Findable needle
 type RequiredImport
     = RequiredImported
     | RequiredNotImported { importLocation : Location }
+
+
+after : Range -> { column : Int } -> Location
+after range { column } =
+    { row = range.end.row + 1, column = column }

@@ -1,4 +1,4 @@
-module Util exposing (ExposingInfo(..), ModuleInfo, allBindingsInPattern, functionsExposedFromImport, indentFurther, moduleInfo, reindent, subexpressions)
+module Util exposing (ExposingInfo(..), ModuleInfo, allBindingsInPattern, functionsExposedFromImport, indentFurther, indentationLevel, isDocComment, moduleInfo, moduleNameToString, reindent, subexpressions)
 
 {-| Helpers
 -}
@@ -243,6 +243,18 @@ groupExposingList exposingList =
             { functions = [] }
 
 
+moduleNameToString : List String -> String
+moduleNameToString =
+    \moduleName ->
+        moduleName |> String.join "."
+
+
+isDocComment : String -> Bool
+isDocComment =
+    \comment ->
+        comment |> String.startsWith "{-|"
+
+
 {-| Re-indent a section of generated code to ensure that it doesn't cause issues
 when used as a fix.
 -}
@@ -272,5 +284,10 @@ indentFurther =
     \code ->
         code
             |> String.lines
-            |> List.map (\codeLine -> "    " ++ codeLine)
+            |> List.map (\codeLine -> indentationLevel ++ codeLine)
             |> String.join "\n"
+
+
+indentationLevel : String
+indentationLevel =
+    "    "
