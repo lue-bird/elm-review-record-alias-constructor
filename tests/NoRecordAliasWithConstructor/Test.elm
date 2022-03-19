@@ -1,7 +1,7 @@
 module NoRecordAliasWithConstructor.Test exposing (tests)
 
 import NoRecordAliasWithConstructor exposing (configDefault, importRecordWithoutConstructorFunctionTypeAlias, ruleWith)
-import NoRecordAliasWithConstructor.Internal exposing (errorInfo)
+import NoRecordAliasWithConstructor.Common exposing (errorInfo)
 import Review.Test as Test
 import Test exposing (Test, describe, test)
 

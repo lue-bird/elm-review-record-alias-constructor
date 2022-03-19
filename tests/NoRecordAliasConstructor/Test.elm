@@ -6,7 +6,7 @@ import Elm.Type as TypeMetadata
 import Elm.Version as VersionMetadata
 import Json.Decode
 import NoRecordAliasConstructor exposing (rule)
-import NoRecordAliasConstructor.Internal exposing (errorInfo)
+import NoRecordAliasConstructor.Common exposing (errorInfo)
 import Review.Project as Project exposing (Project)
 import Review.Project.Dependency as Dependency
 import Review.Test as Test

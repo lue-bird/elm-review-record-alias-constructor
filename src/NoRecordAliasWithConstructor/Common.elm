@@ -1,4 +1,4 @@
-module NoRecordAliasWithConstructor.Internal exposing (errorInfo)
+module NoRecordAliasWithConstructor.Common exposing (errorInfo)
 
 
 errorInfo : { message : String, details : List String }

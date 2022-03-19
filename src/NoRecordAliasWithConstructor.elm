@@ -14,15 +14,15 @@ module NoRecordAliasWithConstructor exposing
 
 -}
 
+import Common exposing (indentFurther, indentationLevel, isDocComment, moduleNameToString)
 import Elm.Syntax.Declaration exposing (Declaration(..))
 import Elm.Syntax.Exposing as Exposing exposing (Exposing, TopLevelExpose(..))
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Range exposing (Location, Range)
 import Elm.Syntax.TypeAnnotation exposing (TypeAnnotation(..))
-import NoRecordAliasWithConstructor.Internal exposing (errorInfo)
+import NoRecordAliasWithConstructor.Common exposing (errorInfo)
 import Review.Fix as Fix exposing (Fix)
 import Review.Rule as Rule exposing (Rule)
-import Util exposing (indentFurther, indentationLevel, isDocComment, moduleNameToString)
 
 
 {-| Configuration where you can specify

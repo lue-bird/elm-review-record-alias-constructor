@@ -1,6 +1,6 @@
-module Util exposing (ExposingInfo(..), ModuleInfo, allBindingsInPattern, functionsExposedFromImport, indentFurther, indentationLevel, isDocComment, moduleInfo, moduleNameToString, reindent, subexpressions)
+module Common exposing (ExposingInfo(..), ModuleInfo, allBindingsInPattern, functionsExposedFromImport, indentFurther, indentationLevel, isDocComment, moduleInfo, moduleNameToString, putParensAround, reindent, subExpressions)
 
-{-| Helpers
+{-| Common helpers
 -}
 
 import Elm.Syntax.Exposing as Exposing exposing (Exposing, TopLevelExpose(..))
@@ -12,61 +12,60 @@ import Elm.Syntax.Pattern exposing (Pattern(..))
 
 {-| Get all immediate child expressions of an expression.
 -}
-subexpressions : Node Expression -> List (Node Expression)
-subexpressions e =
-    case Node.value e of
+subExpressions : Expression -> List (Node Expression)
+subExpressions expression =
+    case expression of
         LetExpression letBlock ->
-            let
-                subExprs : Node LetDeclaration -> Node Expression
-                subExprs n =
-                    case Node.value n of
-                        LetFunction { declaration } ->
-                            Node.value declaration
-                                |> .expression
+            letBlock.declarations
+                |> List.map Node.value
+                |> List.map
+                    (\letDeclaration ->
+                        case letDeclaration of
+                            LetFunction { declaration } ->
+                                declaration |> Node.value |> .expression
 
-                        LetDestructuring _ expr ->
-                            expr
-            in
-            letBlock.expression
-                :: List.map subExprs letBlock.declarations
+                            LetDestructuring _ expression_ ->
+                                expression_
+                    )
+                |> (::) letBlock.expression
 
-        ListExpr exprs ->
-            exprs
+        ListExpr expressions ->
+            expressions
 
-        TupledExpression exprs ->
-            exprs
+        TupledExpression expressions ->
+            expressions
 
-        RecordExpr setters ->
-            List.map (Tuple.second << Node.value) setters
+        RecordExpr fields ->
+            fields |> List.map (\(Node _ ( _, value )) -> value)
 
         RecordUpdateExpression record updaters ->
-            Node.map (FunctionOrValue []) record
-                :: List.map (Tuple.second << Node.value) updaters
+            (record |> Node.map (FunctionOrValue []))
+                :: (updaters |> List.map (\(Node _ ( _, newValue )) -> newValue))
 
-        Application exprs ->
-            exprs
+        Application expressions ->
+            expressions
 
         CaseExpression caseBlock ->
             caseBlock.expression
-                :: List.map Tuple.second caseBlock.cases
+                :: (caseBlock.cases |> List.map (\( _, expression_ ) -> expression_))
 
         OperatorApplication _ _ e1 e2 ->
             [ e1, e2 ]
 
-        IfBlock predExpr thenExpr elseExpr ->
-            [ predExpr, thenExpr, elseExpr ]
+        IfBlock condition then_ else_ ->
+            [ condition, then_, else_ ]
 
-        LambdaExpression { expression } ->
-            [ expression ]
+        LambdaExpression lambda ->
+            [ lambda.expression ]
 
         RecordAccess record _ ->
             [ record ]
 
-        ParenthesizedExpression expr ->
-            [ expr ]
+        ParenthesizedExpression expression_ ->
+            [ expression_ ]
 
-        Negation expr ->
-            [ expr ]
+        Negation expression_ ->
+            [ expression_ ]
 
         UnitExpr ->
             []
@@ -104,37 +103,38 @@ subexpressions e =
 
 {-| Recursively find all bindings in a pattern.
 -}
-allBindingsInPattern : Node Pattern -> List String
+allBindingsInPattern : Pattern -> List String
 allBindingsInPattern pattern =
     let
-        go : List (Node Pattern) -> List String
-        go =
-            List.concatMap allBindingsInPattern
+        step : List (Node Pattern) -> List String
+        step =
+            List.concatMap
+                (\(Node _ pattern_) -> pattern_ |> allBindingsInPattern)
     in
-    case Node.value pattern of
+    case pattern of
         ListPattern patterns ->
-            go patterns
+            patterns |> step
 
         TuplePattern patterns ->
-            go patterns
+            patterns |> step
 
         RecordPattern patterns ->
             patterns |> List.map Node.value
 
         NamedPattern _ patterns ->
-            go patterns
+            patterns |> step
 
         UnConsPattern headPattern tailPattern ->
-            go [ headPattern, tailPattern ]
+            [ headPattern, tailPattern ] |> step
 
         VarPattern name ->
             [ name ]
 
-        AsPattern asedPattern (Node _ name) ->
-            name :: go [ asedPattern ]
+        AsPattern pattern_ (Node _ name) ->
+            name :: ([ pattern_ ] |> step)
 
-        ParenthesizedPattern p ->
-            go [ p ]
+        ParenthesizedPattern inParens ->
+            [ inParens ] |> step
 
         AllPattern ->
             []
@@ -291,3 +291,10 @@ indentFurther =
 indentationLevel : String
 indentationLevel =
     "    "
+
+
+{-| `Gen.parens` is ignored when printing, so the parens are put around manually.
+-}
+putParensAround : String -> String
+putParensAround string =
+    "(" ++ string ++ ")"
