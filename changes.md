@@ -1,5 +1,10 @@
 # changelog
 
+#### 1.1.1
+
+  - `elm-review` → >= 2.10.0
+      - `providesFixesFor...Rule` add
+
 ### 1.1.0
 
   - added `NoRecordAliasWithConstructor` module and rule
