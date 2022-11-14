@@ -1,7 +1,7 @@
 {
     "type": "package",
     "name": "lue-bird/elm-review-record-alias-constructor",
-    "summary": "elm-review rule: forbid record `type alias` constructors",
+    "summary": "elm-review: forbid record `type alias` constructors",
     "license": "MIT",
     "version": "1.1.1",
     "exposed-modules": [
