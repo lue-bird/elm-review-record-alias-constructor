@@ -301,6 +301,7 @@ ruleWith config =
     Rule.newModuleRuleSchemaUsingContextCreator
         "NoRecordAliasWithConstructor"
         initContext
+        |> Rule.providesFixesForModuleRule
         |> Rule.withImportVisitor
             (\(Node importRange importSyntax) context ->
                 ( []

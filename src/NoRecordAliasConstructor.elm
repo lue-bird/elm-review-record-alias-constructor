@@ -75,6 +75,7 @@ rule =
         , constructorUses = []
         , modulesExposingAll = Dict.empty
         }
+        |> Rule.providesFixesForProjectRule
         |> Rule.withDependenciesProjectVisitor
             (\dependencies context ->
                 ( []
