@@ -1,4 +1,4 @@
-module Common exposing (ExposingInfo(..), ModuleInfo, allBindingsInPattern, functionsExposedFromImport, indentFurther, indentationLevel, isDocComment, moduleInfo, moduleNameToString, putParensAround, reindent, subExpressions)
+module Help exposing (ExposingInfo(..), ModuleInfo, allBindingsInPattern, functionsExposedFromImport, indentFurther, indentationLevel, isDocComment, moduleInfo, moduleNameToString, putParensAround, reindent, subExpressions)
 
 {-| Common helpers
 -}

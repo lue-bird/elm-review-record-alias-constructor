@@ -6,7 +6,6 @@ module NoRecordAliasConstructor exposing (rule)
 
 -}
 
-import Common exposing (ExposingInfo(..), allBindingsInPattern, functionsExposedFromImport, moduleInfo, putParensAround, reindent, subExpressions)
 import Dict exposing (Dict)
 import Elm.CodeGen as Gen
 import Elm.Pretty as GenPretty
@@ -19,6 +18,7 @@ import Elm.Syntax.Range exposing (Range)
 import Elm.Syntax.TypeAlias exposing (TypeAlias)
 import Elm.Syntax.TypeAnnotation as Type
 import Elm.Type as TypeMetadata
+import Help exposing (ExposingInfo(..), allBindingsInPattern, functionsExposedFromImport, moduleInfo, putParensAround, reindent, subExpressions)
 import NoRecordAliasConstructor.Common exposing (errorInfo)
 import Pretty exposing (pretty)
 import Review.Fix as Fix
