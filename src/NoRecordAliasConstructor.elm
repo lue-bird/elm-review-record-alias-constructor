@@ -272,8 +272,7 @@ translateContexts =
         \a b ->
             { modulesRecordTypeAliases = a.modulesRecordTypeAliases |> Dict.union b.modulesRecordTypeAliases
             , modulesExposingAll =
-                a.modulesExposingAll
-                    |> Dict.union b.modulesExposingAll
+                Dict.union a.modulesExposingAll b.modulesExposingAll
             }
     }
 
