@@ -278,8 +278,7 @@ translateContexts =
             , constructorUses =
                 a.constructorUses ++ b.constructorUses
             , modulesExposingAll =
-                a.modulesExposingAll
-                    |> Dict.union b.modulesExposingAll
+                Dict.union a.modulesExposingAll b.modulesExposingAll
             }
     }
 
