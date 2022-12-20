@@ -160,7 +160,7 @@ allBindingsInPattern pattern =
 
 type ExposingInfo
     = ExposingAll
-    | ExposingExplicit { functions : List String }
+    | ExposingExplicit (List String)
 
 
 type alias ModuleInfo =
@@ -183,18 +183,17 @@ moduleInfo module_ =
                     { moduleName = moduleName |> Node.value
                     , exposing_ =
                         ExposingExplicit
-                            { functions =
-                                list
-                                    |> List.filterMap
-                                        (\(Node _ expose) ->
-                                            case expose of
-                                                TypeOrAliasExpose name ->
-                                                    Just name
+                            (list
+                                |> List.filterMap
+                                    (\(Node _ expose) ->
+                                        case expose of
+                                            TypeOrAliasExpose name ->
+                                                Just name
 
-                                                _ ->
-                                                    Nothing
-                                        )
-                            }
+                                            _ ->
+                                                Nothing
+                                    )
+                            )
                     }
     in
     case module_ of
@@ -219,17 +218,14 @@ functionsExposedFromImport expose =
             ExposingAll
 
 
-groupExposingList : List TopLevelExpose -> { functions : List String }
+groupExposingList : List TopLevelExpose -> List String
 groupExposingList exposingList =
     exposingList
         |> List.foldl
             (\exposed groups ->
                 case exposed of
                     FunctionExpose function ->
-                        { groups
-                            | functions =
-                                groups.functions |> (::) function
-                        }
+                        groups |> (::) function
 
                     InfixExpose _ ->
                         groups
@@ -240,7 +236,7 @@ groupExposingList exposingList =
                     TypeExpose _ ->
                         groups
             )
-            { functions = [] }
+            []
 
 
 moduleNameToString : List String -> String

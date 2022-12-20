@@ -8,6 +8,7 @@ module NoRecordAliasConstructor exposing (rule)
 
 import Dict exposing (Dict)
 import Elm.CodeGen as Gen
+import Elm.Docs
 import Elm.Pretty as GenPretty
 import Elm.Syntax.Declaration exposing (Declaration(..))
 import Elm.Syntax.Expression as Expression exposing (Expression, LetDeclaration(..))
@@ -24,7 +25,8 @@ import Pretty exposing (pretty)
 import Review.Fix as Fix
 import Review.ModuleNameLookupTable as ModuleNameLookupTable exposing (ModuleNameLookupTable)
 import Review.Project.Dependency as Dependency
-import Review.Rule as Rule exposing (ModuleKey, Rule)
+import Review.Rule as Rule exposing (Rule)
+import Set exposing (Set)
 
 
 {-| 🔧`NoRecordAliasConstructor` forbids using a record type alias constructor function.
@@ -71,8 +73,7 @@ See the [readme](https://package.elm-lang.org/packages/lue-bird/elm-review-recor
 rule : Rule
 rule =
     Rule.newProjectRuleSchema "NoRecordAliasConstructor"
-        { aliases = []
-        , constructorUses = []
+        { modulesRecordTypeAliases = Dict.empty
         , modulesExposingAll = Dict.empty
         }
         |> Rule.providesFixesForProjectRule
@@ -80,6 +81,7 @@ rule =
             (\dependencies context ->
                 ( []
                 , let
+                    modules : List Elm.Docs.Module
                     modules =
                         dependencies
                             |> Dict.values
@@ -97,35 +99,40 @@ rule =
                                     |> List.map
                                         (\{ name, values } ->
                                             ( name |> moduleNameParts
-                                            , { functions = values |> List.map .name }
+                                            , values |> List.map .name |> Set.fromList
                                             )
                                         )
                                     |> Dict.fromList
                                 )
-                    , aliases =
+                    , modulesRecordTypeAliases =
                         modules
-                            |> List.concatMap
+                            |> List.map
                                 (\module_ ->
-                                    module_.aliases
+                                    ( module_.name |> moduleNameParts
+                                    , module_.aliases
                                         |> List.filterMap
                                             (\alias ->
                                                 case alias.tipe of
                                                     TypeMetadata.Record fields Nothing ->
-                                                        { moduleName = module_.name |> moduleNameParts
-                                                        , name = alias.name
-                                                        , recordFields =
-                                                            fields
-                                                                |> List.map (\( fieldName, _ ) -> fieldName)
-                                                        }
+                                                        ( alias.name
+                                                        , { recordFields =
+                                                                fields
+                                                                    |> List.map (\( fieldName, _ ) -> fieldName)
+                                                          }
+                                                        )
                                                             |> Just
 
                                                     _ ->
                                                         Nothing
                                             )
+                                        |> Dict.fromList
+                                    )
                                 )
+                            |> Dict.fromList
                   }
                 )
             )
+        |> Rule.withContextFromImportedModules
         |> Rule.withModuleVisitor
             (Rule.withModuleDefinitionVisitor
                 (\(Node _ module_) context ->
@@ -148,16 +155,16 @@ rule =
                                 case functionsExposedFromImport exposing_ of
                                     ExposingAll ->
                                         { context
-                                            | allImportedModules =
-                                                context.allImportedModules
-                                                    |> (::) (import_.moduleName |> Node.value)
+                                            | importedModulesExposingAll =
+                                                context.importedModulesExposingAll
+                                                    |> Set.insert (import_.moduleName |> Node.value)
                                         }
 
-                                    ExposingExplicit { functions } ->
+                                    ExposingExplicit exposedExplicitly ->
                                         { context
-                                            | explicitlyImportedFunctions =
-                                                context.explicitlyImportedFunctions
-                                                    ++ functions
+                                            | importedExplicitly =
+                                                context.importedExplicitly
+                                                    |> Set.union (exposedExplicitly |> Set.fromList)
                                         }
 
                             Nothing ->
@@ -176,9 +183,9 @@ rule =
                                                 fun.declaration |> Node.value |> .name
                                         in
                                         { context
-                                            | topLevelFunctions =
-                                                context.topLevelFunctions
-                                                    |> (::) name
+                                            | moduleLevelBindings =
+                                                context.moduleLevelBindings
+                                                    |> Set.insert name
                                         }
 
                                     _ ->
@@ -201,6 +208,7 @@ rule =
                                                     implementation.arguments
                                                         |> List.concatMap
                                                             (\(Node _ pattern) -> pattern |> allBindingsInPattern)
+                                                        |> Set.fromList
                                                 }
                                                 implementation.expression
                                                 context
@@ -210,57 +218,45 @@ rule =
                                 contextWithThisDeclaration
                         )
                     )
+                >> Rule.withFinalModuleEvaluation
+                    moduleReport
             )
         |> Rule.withModuleContextUsingContextCreator translateContexts
-        |> Rule.withFinalProjectEvaluation checkEverything
         |> Rule.fromProjectRuleSchema
 
 
 type alias ProjectContext =
     { modulesExposingAll :
-        Dict ModuleName { functions : List String }
-    , aliases :
-        List
-            { name : String
-            , moduleName : ModuleName
-            , recordFields : List String
-            }
-    , constructorUses :
-        List
-            { moduleKey : ModuleKey
-            , at :
-                List
-                    { name : String
-                    , moduleName : ModuleName
-                    , arguments : List Expression
-                    , range : Range
-                    , functionsInScope : List String
-                    }
-            , allImportedModules : List ModuleName
-            }
+        Dict ModuleName (Set String)
+    , modulesRecordTypeAliases :
+        Dict
+            ModuleName
+            (Dict String { recordFields : List String })
     }
 
 
 type alias ModuleContext =
-    { moduleName : ModuleName
+    { modulesExposingAll : Dict ModuleName (Set String)
+    , moduleNameLookupTable : ModuleNameLookupTable
+    , moduleName : ModuleName
     , exposing_ : ExposingInfo
-    , topLevelFunctions : List String
-    , explicitlyImportedFunctions : List String
-    , allImportedModules : List ModuleName
-    , aliases :
-        List
-            { name : String
-            , recordFields : List String
-            }
+    , moduleLevelBindings : Set String
+    , importedExplicitly : Set String
+    , importedModulesExposingAll : Set ModuleName
+    , importedModulesRecordTypeAliases :
+        Dict
+            ModuleName
+            (Dict String { recordFields : List String })
+    , moduleLevelRecordTypeAliases :
+        Dict String { recordFields : List String }
     , functionsAndValues :
         List
             { name : String
             , moduleName : ModuleName
             , arguments : List Expression
-            , bindingsInScope : List String
+            , bindingsInScope : Set String
             , range : Range
             }
-    , moduleNameLookupTable : ModuleNameLookupTable
     }
 
 
@@ -274,9 +270,7 @@ translateContexts =
     , fromModuleToProject = moduleToProjectContext
     , foldProjectContexts =
         \a b ->
-            { aliases = a.aliases ++ b.aliases
-            , constructorUses =
-                a.constructorUses ++ b.constructorUses
+            { modulesRecordTypeAliases = a.modulesRecordTypeAliases |> Dict.union b.modulesRecordTypeAliases
             , modulesExposingAll =
                 a.modulesExposingAll
                     |> Dict.union b.modulesExposingAll
@@ -287,16 +281,19 @@ translateContexts =
 projectToModuleContext : Rule.ContextCreator ProjectContext ModuleContext
 projectToModuleContext =
     Rule.initContextCreator
-        (\lookupTable _ ->
-            -- many dummy values
-            { moduleName = []
-            , exposing_ = ExposingAll
-            , explicitlyImportedFunctions = []
-            , topLevelFunctions = []
-            , allImportedModules = []
-            , aliases = []
+        (\lookupTable projectContext ->
+            { importedExplicitly = Set.empty
+            , moduleLevelBindings = Set.empty
+            , moduleLevelRecordTypeAliases = Dict.empty
+            , importedModulesRecordTypeAliases = projectContext.modulesRecordTypeAliases
             , functionsAndValues = []
+            , importedModulesExposingAll = Set.empty
             , moduleNameLookupTable = lookupTable
+            , modulesExposingAll = projectContext.modulesExposingAll
+
+            -- dummy values. sad
+            , moduleName = []
+            , exposing_ = ExposingAll
             }
         )
         |> Rule.withModuleNameLookupTable
@@ -305,51 +302,27 @@ projectToModuleContext =
 moduleToProjectContext : Rule.ContextCreator ModuleContext ProjectContext
 moduleToProjectContext =
     Rule.initContextCreator
-        (\moduleKey moduleContext ->
-            { aliases =
-                moduleContext.aliases
-                    |> List.map
-                        (\{ name, recordFields } ->
-                            { name = name
-                            , recordFields = recordFields
-                            , moduleName = moduleContext.moduleName
-                            }
-                        )
-            , constructorUses =
-                [ { moduleKey = moduleKey
-                  , allImportedModules = moduleContext.allImportedModules
-                  , at =
-                        moduleContext.functionsAndValues
-                            |> List.map
-                                (\fun ->
-                                    { name = fun.name
-                                    , moduleName = fun.moduleName
-                                    , arguments = fun.arguments
-                                    , functionsInScope =
-                                        [ moduleContext.explicitlyImportedFunctions
-                                        , moduleContext.topLevelFunctions
-                                        , fun.bindingsInScope
-                                        ]
-                                            |> List.concat
-                                    , range = fun.range
-                                    }
-                                )
-                  }
-                ]
+        (\moduleContext ->
+            { modulesRecordTypeAliases =
+                Dict.singleton
+                    moduleContext.moduleName
+                    moduleContext.moduleLevelRecordTypeAliases
             , modulesExposingAll =
                 case moduleContext.exposing_ of
                     ExposingAll ->
-                        Dict.singleton moduleContext.moduleName
-                            { functions = moduleContext.topLevelFunctions }
+                        Dict.singleton
+                            moduleContext.moduleName
+                            moduleContext.moduleLevelBindings
 
                     ExposingExplicit _ ->
                         Dict.empty
             }
         )
-        |> Rule.withModuleKey
 
 
-visitDeclarationForRecordAlias : TypeAlias -> ModuleContext -> ModuleContext
+visitDeclarationForRecordAlias :
+    TypeAlias
+    -> (ModuleContext -> ModuleContext)
 visitDeclarationForRecordAlias alias context =
     let
         name =
@@ -357,19 +330,15 @@ visitDeclarationForRecordAlias alias context =
     in
     case alias.typeAnnotation |> Node.value of
         Type.Record fields ->
-            let
-                recordAlias =
-                    { name = name
-                    , recordFields =
-                        fields
-                            |> List.map
-                                (\(Node _ ( Node _ field, _ )) -> field)
-                    }
-            in
             { context
-                | aliases =
-                    context.aliases
-                        |> (::) recordAlias
+                | moduleLevelRecordTypeAliases =
+                    context.moduleLevelRecordTypeAliases
+                        |> Dict.insert name
+                            { recordFields =
+                                fields
+                                    |> List.map
+                                        (\(Node _ ( Node _ field, _ )) -> field)
+                            }
             }
 
         _ ->
@@ -377,17 +346,19 @@ visitDeclarationForRecordAlias alias context =
 
 
 collectFunctions :
-    { bindingsInScope : List String }
+    { bindingsInScope : Set String }
     -> Node Expression
-    -> ModuleContext
     ->
-        List
-            { name : String
-            , moduleName : ModuleName
-            , arguments : List Expression
-            , bindingsInScope : List String
-            , range : Range
-            }
+        (ModuleContext
+         ->
+            List
+                { name : String
+                , moduleName : ModuleName
+                , arguments : List Expression
+                , bindingsInScope : Set String
+                , range : Range
+                }
+        )
 collectFunctions { bindingsInScope } expressionNode context =
     let
         (Node expressionRange expression) =
@@ -416,7 +387,7 @@ collectFunctions { bindingsInScope } expressionNode context =
                     { name : String
                     , moduleName : ModuleName
                     , arguments : List Expression
-                    , bindingsInScope : List String
+                    , bindingsInScope : Set String
                     , range : Range
                     }
         goWith newFunctions expressions =
@@ -426,10 +397,12 @@ collectFunctions { bindingsInScope } expressionNode context =
                         collectFunctions
                             { bindingsInScope =
                                 bindingsInScope
-                                    ++ (newFunctions
+                                    |> Set.union
+                                        (newFunctions
                                             |> List.concatMap
                                                 (\(Node _ pattern) -> pattern |> allBindingsInPattern)
-                                       )
+                                            |> Set.fromList
+                                        )
                             }
                             expressionToGoTo
                             context
@@ -446,8 +419,7 @@ collectFunctions { bindingsInScope } expressionNode context =
                         ++ [ { name = name
                              , moduleName = moduleName
                              , arguments = arguments |> List.map Node.value
-                             , bindingsInScope =
-                                bindingsInScope
+                             , bindingsInScope = bindingsInScope
                              , range = expressionRange
                              }
                            ]
@@ -535,88 +507,98 @@ collectFunctions { bindingsInScope } expressionNode context =
             (expressionNode |> Node.value |> subExpressions) |> step
 
 
-checkEverything : ProjectContext -> List (Rule.Error { useErrorForModule : () })
-checkEverything context =
-    context.constructorUses
+moduleReport : ModuleContext -> List (Rule.Error {})
+moduleReport context =
+    let
+        exposingAllImportedFunctions : Set String
+        exposingAllImportedFunctions =
+            context.importedModulesExposingAll
+                |> Set.toList
+                |> List.filterMap
+                    (\importedModuleExposingAll ->
+                        context.modulesExposingAll |> Dict.get importedModuleExposingAll
+                    )
+                |> List.foldl Set.union Set.empty
+    in
+    context.importedModulesRecordTypeAliases
+        |> Dict.insert context.moduleName
+            context.moduleLevelRecordTypeAliases
+        |> Dict.toList
         |> List.concatMap
-            (\{ moduleKey, at, allImportedModules } ->
-                let
-                    exposingAllImportedFunctions : List String
-                    exposingAllImportedFunctions =
-                        allImportedModules
-                            |> List.filterMap
-                                (\import_ ->
-                                    Dict.get import_ context.modulesExposingAll
-                                )
-                            |> List.concatMap .functions
-                in
-                context.aliases
+            (\( moduleName, moduleLevelRecordTypeAliases ) ->
+                moduleLevelRecordTypeAliases
+                    |> Dict.toList
+                    |> List.map
+                        (\( name, moduleLevelRecordTypeAlias ) ->
+                            { moduleName = moduleName
+                            , name = name
+                            , recordFields = moduleLevelRecordTypeAlias.recordFields
+                            }
+                        )
+            )
+        |> List.concatMap
+            (\alias ->
+                context.functionsAndValues
+                    |> List.filter
+                        (\use ->
+                            (alias.moduleName == use.moduleName)
+                                && (alias.name == use.name)
+                        )
                     |> List.concatMap
-                        (\alias ->
-                            at
-                                |> List.filter
-                                    (\use ->
-                                        (alias.moduleName == use.moduleName)
-                                            && (alias.name == use.name)
-                                    )
-                                |> List.concatMap
-                                    (\use ->
-                                        let
-                                            curriedFields : List String
-                                            curriedFields =
-                                                alias.recordFields
-                                                    |> List.drop (use.arguments |> List.length)
+                        (\use ->
+                            let
+                                curriedFields : List String
+                                curriedFields =
+                                    alias.recordFields
+                                        |> List.drop (use.arguments |> List.length)
 
-                                            functionsInScope =
-                                                use.functionsInScope
-                                                    ++ exposingAllImportedFunctions
-                                        in
-                                        if
-                                            curriedFields
-                                                |> List.any
-                                                    (\field ->
-                                                        List.member field functionsInScope
+                                reservedInScope : Set String
+                                reservedInScope =
+                                    use.bindingsInScope
+                                        |> Set.union exposingAllImportedFunctions
+                                        |> Set.union context.importedExplicitly
+                                        |> Set.union context.moduleLevelBindings
+                            in
+                            if
+                                curriedFields
+                                    |> List.any
+                                        (\field -> Set.member field reservedInScope)
+                            then
+                                [ Rule.error errorInfo use.range ]
+
+                            else
+                                [ Rule.errorWithFix
+                                    errorInfo
+                                    use.range
+                                    [ let
+                                        record =
+                                            Gen.record
+                                                (List.map2
+                                                    (\field value -> ( field, value ))
+                                                    alias.recordFields
+                                                    (use.arguments
+                                                        ++ (curriedFields |> List.map Gen.val)
                                                     )
-                                        then
-                                            [ Rule.errorForModule moduleKey
-                                                errorInfo
-                                                use.range
-                                            ]
+                                                )
+                                      in
+                                      Fix.replaceRangeBy use.range
+                                        (case curriedFields of
+                                            [] ->
+                                                record
+                                                    |> GenPretty.prettyExpression
+                                                    |> pretty 100
+                                                    |> reindent use.range.start.column
 
-                                        else
-                                            [ Rule.errorForModuleWithFix moduleKey
-                                                errorInfo
-                                                use.range
-                                                [ let
-                                                    record =
-                                                        Gen.record
-                                                            (List.map2
-                                                                (\field value -> ( field, value ))
-                                                                alias.recordFields
-                                                                (use.arguments
-                                                                    ++ (curriedFields |> List.map Gen.val)
-                                                                )
-                                                            )
-                                                  in
-                                                  Fix.replaceRangeBy use.range
-                                                    (case curriedFields of
-                                                        [] ->
-                                                            record
-                                                                |> GenPretty.prettyExpression
-                                                                |> pretty 100
-                                                                |> reindent use.range.start.column
-
-                                                        _ ->
-                                                            Gen.lambda
-                                                                (curriedFields |> List.map Gen.varPattern)
-                                                                record
-                                                                |> GenPretty.prettyExpression
-                                                                |> pretty 100
-                                                                |> reindent use.range.start.column
-                                                                |> putParensAround
-                                                    )
-                                                ]
-                                            ]
-                                    )
+                                            _ ->
+                                                Gen.lambda
+                                                    (curriedFields |> List.map Gen.varPattern)
+                                                    record
+                                                    |> GenPretty.prettyExpression
+                                                    |> pretty 100
+                                                    |> reindent use.range.start.column
+                                                    |> putParensAround
+                                        )
+                                    ]
+                                ]
                         )
             )
