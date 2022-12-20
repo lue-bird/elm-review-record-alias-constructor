@@ -1,5 +1,9 @@
 # changelog
 
+#### 1.1.2
+
+  - project collect → `withContextFromImportedModules`
+
 #### 1.1.1
 
   - `elm-review` → >= 2.10.0
