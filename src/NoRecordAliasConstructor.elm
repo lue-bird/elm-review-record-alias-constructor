@@ -20,7 +20,7 @@ import Elm.Syntax.TypeAlias exposing (TypeAlias)
 import Elm.Syntax.TypeAnnotation as Type
 import Elm.Type as TypeMetadata
 import FastDict as Dict exposing (Dict)
-import Help exposing (ExposingInfo(..), allBindingsInPattern, functionsExposedFromImport, moduleInfo, putParensAround, reindent, subExpressions)
+import Help exposing (ExposingInfo(..), functionsExposedFromImport, moduleInfo, patternBindings, patternListBindings, putParensAround, reindent, subExpressions)
 import NoRecordAliasConstructor.Common exposing (errorInfo)
 import Pretty exposing (pretty)
 import Review.Fix as Fix
@@ -210,7 +210,7 @@ rule =
                                                     { bindingsInScope =
                                                         implementation.arguments
                                                             |> List.map
-                                                                (\(Node _ pattern) -> pattern |> allBindingsInPattern)
+                                                                (\(Node _ pattern) -> pattern |> patternBindings)
                                                             |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
                                                     }
                                                     implementation.expression
@@ -398,13 +398,9 @@ collectFunctions { bindingsInScope } expressionNode context =
                     (\expressionToGoTo ->
                         collectFunctions
                             { bindingsInScope =
-                                bindingsInScope
-                                    |> Set.union
-                                        (newFunctions
-                                            |> List.map
-                                                (\(Node _ pattern) -> pattern |> allBindingsInPattern)
-                                            |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
-                                        )
+                                Set.union
+                                    bindingsInScope
+                                    (newFunctions |> patternListBindings)
                             }
                             expressionToGoTo
                             context

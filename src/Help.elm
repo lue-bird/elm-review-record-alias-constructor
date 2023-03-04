@@ -1,4 +1,4 @@
-module Help exposing (ExposingInfo(..), ModuleInfo, allBindingsInPattern, functionsExposedFromImport, indentFurther, indentationLevel, isDocComment, moduleInfo, moduleNameToString, putParensAround, reindent, subExpressions)
+module Help exposing (ExposingInfo(..), ModuleInfo, functionsExposedFromImport, indentFurther, indentationLevel, isDocComment, moduleInfo, moduleNameToString, patternBindings, patternListBindings, putParensAround, reindent, subExpressions)
 
 {-| Common helpers
 -}
@@ -102,42 +102,42 @@ subExpressions expression =
             []
 
 
+patternListBindings : List (Node Pattern) -> Set String
+patternListBindings patterns =
+    patterns
+        |> List.map
+            (\(Node _ pattern_) -> pattern_ |> patternBindings)
+        |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
+
+
 {-| Recursively find all bindings in a pattern.
 -}
-allBindingsInPattern : Pattern -> Set String
-allBindingsInPattern pattern =
-    let
-        step : List (Node Pattern) -> Set String
-        step patterns =
-            patterns
-                |> List.map
-                    (\(Node _ pattern_) -> pattern_ |> allBindingsInPattern)
-                |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
-    in
+patternBindings : Pattern -> Set String
+patternBindings pattern =
     case pattern of
         ListPattern patterns ->
-            patterns |> step
+            patternListBindings patterns
 
         TuplePattern patterns ->
-            patterns |> step
+            patternListBindings patterns
 
         RecordPattern patterns ->
-            patterns |> List.map Node.value |> Set.fromList
+            Set.fromList (List.map Node.value patterns)
 
         NamedPattern _ patterns ->
-            patterns |> step
+            patternListBindings patterns
 
-        UnConsPattern headPattern tailPattern ->
-            [ headPattern, tailPattern ] |> step
+        UnConsPattern (Node _ headPattern) (Node _ tailPattern) ->
+            Set.union (patternBindings tailPattern) (patternBindings headPattern)
 
         VarPattern name ->
             Set.singleton name
 
-        AsPattern pattern_ (Node _ name) ->
-            Set.insert name ([ pattern_ ] |> step)
+        AsPattern (Node _ pattern_) (Node _ name) ->
+            Set.insert name (patternBindings pattern_)
 
-        ParenthesizedPattern inParens ->
-            [ inParens ] |> step
+        ParenthesizedPattern (Node _ inParens) ->
+            patternBindings inParens
 
         AllPattern ->
             Set.empty
