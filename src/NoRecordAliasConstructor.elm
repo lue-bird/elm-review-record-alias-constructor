@@ -209,9 +209,9 @@ rule =
                                                 ++ collectFunctions
                                                     { bindingsInScope =
                                                         implementation.arguments
-                                                            |> List.concatMap
+                                                            |> List.map
                                                                 (\(Node _ pattern) -> pattern |> allBindingsInPattern)
-                                                            |> Set.fromList
+                                                            |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
                                                     }
                                                     implementation.expression
                                                     context
@@ -401,9 +401,9 @@ collectFunctions { bindingsInScope } expressionNode context =
                                 bindingsInScope
                                     |> Set.union
                                         (newFunctions
-                                            |> List.concatMap
+                                            |> List.map
                                                 (\(Node _ pattern) -> pattern |> allBindingsInPattern)
-                                            |> Set.fromList
+                                            |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
                                         )
                             }
                             expressionToGoTo

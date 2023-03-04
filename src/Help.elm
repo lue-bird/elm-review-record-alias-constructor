@@ -8,6 +8,7 @@ import Elm.Syntax.Expression exposing (Expression(..), LetDeclaration(..))
 import Elm.Syntax.Module exposing (Module(..))
 import Elm.Syntax.Node as Node exposing (Node(..))
 import Elm.Syntax.Pattern exposing (Pattern(..))
+import Set exposing (Set)
 
 
 {-| Get all immediate child expressions of an expression.
@@ -103,13 +104,15 @@ subExpressions expression =
 
 {-| Recursively find all bindings in a pattern.
 -}
-allBindingsInPattern : Pattern -> List String
+allBindingsInPattern : Pattern -> Set String
 allBindingsInPattern pattern =
     let
-        step : List (Node Pattern) -> List String
-        step =
-            List.concatMap
-                (\(Node _ pattern_) -> pattern_ |> allBindingsInPattern)
+        step : List (Node Pattern) -> Set String
+        step patterns =
+            patterns
+                |> List.map
+                    (\(Node _ pattern_) -> pattern_ |> allBindingsInPattern)
+                |> List.foldl (\bindings soFar -> Set.union soFar bindings) Set.empty
     in
     case pattern of
         ListPattern patterns ->
@@ -119,7 +122,7 @@ allBindingsInPattern pattern =
             patterns |> step
 
         RecordPattern patterns ->
-            patterns |> List.map Node.value
+            patterns |> List.map Node.value |> Set.fromList
 
         NamedPattern _ patterns ->
             patterns |> step
@@ -128,34 +131,34 @@ allBindingsInPattern pattern =
             [ headPattern, tailPattern ] |> step
 
         VarPattern name ->
-            [ name ]
+            Set.singleton name
 
         AsPattern pattern_ (Node _ name) ->
-            name :: ([ pattern_ ] |> step)
+            Set.insert name ([ pattern_ ] |> step)
 
         ParenthesizedPattern inParens ->
             [ inParens ] |> step
 
         AllPattern ->
-            []
+            Set.empty
 
         UnitPattern ->
-            []
+            Set.empty
 
         CharPattern _ ->
-            []
+            Set.empty
 
         StringPattern _ ->
-            []
+            Set.empty
 
         IntPattern _ ->
-            []
+            Set.empty
 
         HexPattern _ ->
-            []
+            Set.empty
 
         FloatPattern _ ->
-            []
+            Set.empty
 
 
 type ExposingInfo
