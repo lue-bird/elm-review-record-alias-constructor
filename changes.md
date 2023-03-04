@@ -1,5 +1,9 @@
 # changelog
 
+#### 1.1.3
+
+  - switch to [`miniBill/elm-fast-dict`](https://dark.elm.dmy.fr/packages/miniBill/elm-fast-dict/latest/)
+
 #### 1.1.2
 
   - project collect → `withContextFromImportedModules`

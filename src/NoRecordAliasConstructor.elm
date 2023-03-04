@@ -6,7 +6,7 @@ module NoRecordAliasConstructor exposing (rule)
 
 -}
 
-import Dict exposing (Dict)
+import Dict as CoreDict
 import Elm.CodeGen as Gen
 import Elm.Docs
 import Elm.Pretty as GenPretty
@@ -19,6 +19,7 @@ import Elm.Syntax.Range exposing (Range)
 import Elm.Syntax.TypeAlias exposing (TypeAlias)
 import Elm.Syntax.TypeAnnotation as Type
 import Elm.Type as TypeMetadata
+import FastDict as Dict exposing (Dict)
 import Help exposing (ExposingInfo(..), allBindingsInPattern, functionsExposedFromImport, moduleInfo, putParensAround, reindent, subExpressions)
 import NoRecordAliasConstructor.Common exposing (errorInfo)
 import Pretty exposing (pretty)
@@ -84,7 +85,7 @@ rule =
                     modules : List Elm.Docs.Module
                     modules =
                         dependencies
-                            |> Dict.values
+                            |> CoreDict.values
                             |> List.concatMap Dependency.modules
 
                     moduleNameParts : String -> ModuleName
@@ -134,100 +135,101 @@ rule =
             )
         |> Rule.withContextFromImportedModules
         |> Rule.withModuleVisitor
-            (Rule.withModuleDefinitionVisitor
-                (\(Node _ module_) context ->
-                    ( []
-                    , let
-                        { moduleName, exposing_ } =
-                            moduleInfo module_
-                      in
-                      { context
-                        | moduleName = moduleName
-                        , exposing_ = exposing_
-                      }
-                    )
-                )
-                >> Rule.withImportVisitor
-                    (\(Node _ import_) context ->
-                        ( []
-                        , case import_.exposingList of
-                            Just (Node _ exposing_) ->
-                                case functionsExposedFromImport exposing_ of
-                                    ExposingAll ->
-                                        { context
-                                            | importedModulesExposingAll =
-                                                context.importedModulesExposingAll
-                                                    |> Set.insert (import_.moduleName |> Node.value)
-                                        }
-
-                                    ExposingExplicit exposedExplicitly ->
-                                        { context
-                                            | importedExplicitly =
-                                                context.importedExplicitly
-                                                    |> Set.union (exposedExplicitly |> Set.fromList)
-                                        }
-
-                            Nothing ->
-                                context
+            (\moduleSchema ->
+                moduleSchema
+                    |> Rule.withModuleDefinitionVisitor
+                        (\(Node _ module_) context ->
+                            ( []
+                            , let
+                                { moduleName, exposing_ } =
+                                    moduleInfo module_
+                              in
+                              { context
+                                | moduleName = moduleName
+                                , exposing_ = exposing_
+                              }
+                            )
                         )
-                    )
-                >> Rule.withDeclarationEnterVisitor
-                    (\(Node _ declaration) context ->
-                        ( []
-                        , let
-                            contextWithThisDeclaration =
-                                case declaration of
-                                    FunctionDeclaration fun ->
-                                        let
-                                            (Node _ name) =
-                                                fun.declaration |> Node.value |> .name
-                                        in
-                                        { context
-                                            | moduleLevelBindings =
-                                                context.moduleLevelBindings
-                                                    |> Set.insert name
-                                        }
+                    |> Rule.withImportVisitor
+                        (\(Node _ import_) context ->
+                            ( []
+                            , case import_.exposingList of
+                                Just (Node _ exposing_) ->
+                                    case functionsExposedFromImport exposing_ of
+                                        ExposingAll ->
+                                            { context
+                                                | importedModulesExposingAll =
+                                                    context.importedModulesExposingAll
+                                                        |> Set.insert (import_.moduleName |> Node.value)
+                                            }
 
-                                    _ ->
-                                        context
-                          in
-                          case declaration of
-                            AliasDeclaration alias ->
-                                visitDeclarationForRecordAlias alias contextWithThisDeclaration
+                                        ExposingExplicit exposedExplicitly ->
+                                            { context
+                                                | importedExplicitly =
+                                                    context.importedExplicitly
+                                                        |> Set.union (exposedExplicitly |> Set.fromList)
+                                            }
 
-                            FunctionDeclaration fun ->
-                                { contextWithThisDeclaration
-                                    | functionsAndValues =
-                                        let
-                                            (Node _ implementation) =
-                                                fun.declaration
-                                        in
-                                        context.functionsAndValues
-                                            ++ collectFunctions
-                                                { bindingsInScope =
-                                                    implementation.arguments
-                                                        |> List.concatMap
-                                                            (\(Node _ pattern) -> pattern |> allBindingsInPattern)
-                                                        |> Set.fromList
-                                                }
-                                                implementation.expression
-                                                context
-                                }
-
-                            _ ->
-                                contextWithThisDeclaration
+                                Nothing ->
+                                    context
+                            )
                         )
-                    )
-                >> Rule.withFinalModuleEvaluation
-                    moduleReport
+                    |> Rule.withDeclarationEnterVisitor
+                        (\(Node _ declaration) context ->
+                            ( []
+                            , let
+                                contextWithThisDeclaration =
+                                    case declaration of
+                                        FunctionDeclaration fun ->
+                                            let
+                                                (Node _ name) =
+                                                    fun.declaration |> Node.value |> .name
+                                            in
+                                            { context
+                                                | moduleLevelBindings =
+                                                    context.moduleLevelBindings
+                                                        |> Set.insert name
+                                            }
+
+                                        _ ->
+                                            context
+                              in
+                              case declaration of
+                                AliasDeclaration alias ->
+                                    visitDeclarationForRecordAlias alias contextWithThisDeclaration
+
+                                FunctionDeclaration fun ->
+                                    { contextWithThisDeclaration
+                                        | functionsAndValues =
+                                            let
+                                                (Node _ implementation) =
+                                                    fun.declaration
+                                            in
+                                            context.functionsAndValues
+                                                ++ collectFunctions
+                                                    { bindingsInScope =
+                                                        implementation.arguments
+                                                            |> List.concatMap
+                                                                (\(Node _ pattern) -> pattern |> allBindingsInPattern)
+                                                            |> Set.fromList
+                                                    }
+                                                    implementation.expression
+                                                    context
+                                    }
+
+                                _ ->
+                                    contextWithThisDeclaration
+                            )
+                        )
+                    |> Rule.withFinalModuleEvaluation
+                        moduleReport
             )
         |> Rule.withModuleContextUsingContextCreator translateContexts
         |> Rule.fromProjectRuleSchema
 
 
 type alias ProjectContext =
-    { modulesExposingAll :
-        Dict ModuleName (Set String)
+    { modulesExposingAll : Dict ModuleName (Set String)
     , modulesRecordTypeAliases :
         Dict
             ModuleName
